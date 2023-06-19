@@ -10,6 +10,8 @@ import re
 import numpy as np
 import os, shutil
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import random
 
 
 debug = 1
@@ -168,6 +170,7 @@ plt.show()
             ax.grid()
             return fig
         else:
+            
             time = graphSers[0]
             if isinstance(time[0],int):
                 for idx_item, timeVal in enumerate(time):
@@ -177,6 +180,7 @@ plt.show()
             primarySeries = {} #graphSers[1]
             secondarySeries = {} #graphSers[2]
             emissions_intensity = graphSers[3]
+            plotColors = []#graphSers[4] 
             for serie, values in graphSers[1].items():
                 if serie in input.sel_series.get():
                     primarySeries[serie] = values
@@ -193,9 +197,12 @@ plt.show()
             #for country in plotCountries:
             #    plotSeries.append(typesEmissions['Total'][country])
 
+            for serie in primarySeries:
+                plotColors.append(graphSers[4][serie])
+
             fig, ax = plt.subplots()
 
-            ax.stackplot(time,primarySeries.values(), labels=primarySeries.keys())
+            ax.stackplot(time,primarySeries.values(), labels=primarySeries.keys(), colors = plotColors)
             ax.set_xlabel('DateTime')
             ax.set_ylabel('Power generation and consumption (Gw)')
             ax.set_title('Power generation and consumption')
@@ -215,7 +222,7 @@ plt.show()
                 for serie in secondarySeries.values():
                     secSeries.append(serie)
                 coo = plt.plot(time, secSeries[0], color='blue')
-                plt.ylabel('Co2 Ton')
+                plt.ylabel('Co2 Kg')
 
             return fig
 
@@ -234,6 +241,7 @@ plt.show()
         emissions_intensity = []
         primarySeries = {}
         secondarySeries = {}
+        plotColors = {}
         for graphDict in selGraphsDictList:
             for serie in graphDict.keys():
                 if serie == "time":
@@ -243,11 +251,40 @@ plt.show()
                     emissions_intensity = graphDict[serie]
                     continue
                 if serie in ["period"]: continue
-                if serie in ["emission_co2", "total_load", "balance"]:
+                if serie in ["emission_co2", "total_load", "balance", "sum_import_export", "power_price"]:
                     secondarySeries[serie] = graphDict[serie]
                     continue
                 primarySeries[serie] = graphDict[serie]
 
+        for graphDict in selGraphsDictList:
+            for serie in graphDict.keys():
+                match serie:
+                    case "solar":
+                        plotColors[serie] = "yellow"
+                    case "wind_onshore":
+                        plotColors[serie] = "skyblue"
+                    case "wind_offshore":
+                        plotColors[serie] = "deepskyblue"
+                    case "run_of_the_river":
+                        plotColors[serie] = "aqua"
+                    case "biomass":
+                        plotColors[serie] = "forestgreen"
+                    case "hydro_pumped_storage":
+                        plotColors[serie] = "cornflowerblue"
+                    case "gas":
+                        plotColors[serie] = "darkgrey"
+                    case "coal":
+                        plotColors[serie] = "dimgrey"
+                    case "lignite":
+                        plotColors[serie] = "darkslategrey"
+                    case "uranium":
+                        plotColors[serie] = "springgreen"
+                    case "other":
+                        plotColors[serie] = "fuchsia"
+                    case _:
+                        colorName, colorCode = random.choice(list(mcolors.CSS4_COLORS.items()))
+                        plotColors[serie] = colorName
+                pass
 
         for idx_item, timeVal in enumerate(time):
                     ts = timeVal /1000
@@ -257,7 +294,8 @@ plt.show()
             time,
             primarySeries,
             secondarySeries,
-            emissions_intensity
+            emissions_intensity, 
+            plotColors
         ])
 
         primSeriesNames = [serieName for serieName in primarySeries.keys()]
